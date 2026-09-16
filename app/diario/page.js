@@ -1,4 +1,4 @@
-import { getDados, campo, campoJSON } from "../../lib/sheets";
+import { getDados, campo, campoJSON, campoContagem } from "../../lib/sheets";
 
 function formatBRL(valor) {
   const n = Number(String(valor).replace(",", "."));
@@ -31,8 +31,8 @@ export default async function DiarioPage() {
   }
 
   const totalHoje = campo(dados, "diario.total_hoje");
-  const conciliadosHoje = campo(dados, "diario.conciliados_hoje");
-  const naoConciliadosHoje = campo(dados, "diario.nao_conciliados_hoje");
+  const conciliadosHoje = campoContagem(dados, "diario.conciliados_hoje");
+  const naoConciliadosHoje = campoContagem(dados, "diario.nao_conciliados_hoje");
   const recebimentosConciliados = campoJSON(dados, "diario.recebimentos_conciliados", []);
   const alertaCritico = campoJSON(dados, "diario.alerta_critico", []);
   const atualizadoEm = campo(dados, "diario.atualizado_em");
@@ -59,11 +59,11 @@ export default async function DiarioPage() {
             </div>
             <div className="kpi">
               <span className="label">Conciliados hoje</span>
-              <span className="value mono">{conciliadosHoje}</span>
+              <span className="value mono">{conciliadosHoje ?? "—"}</span>
             </div>
             <div className="kpi">
               <span className="label">Nao conciliados hoje</span>
-              <span className="value mono">{naoConciliadosHoje}</span>
+              <span className="value mono">{naoConciliadosHoje ?? "—"}</span>
             </div>
           </div>
           <div className="callout">
