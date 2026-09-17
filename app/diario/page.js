@@ -37,10 +37,112 @@ export default async function DiarioPage() {
   const alertaCritico = campoJSON(dados, "diario.alerta_critico", []);
   const atualizadoEm = campo(dados, "diario.atualizado_em");
 
+  const entradasHoje = campoJSON(dados, "diario_resumo.entradas_hoje", []);
+  const entradasHojeTotal = campo(dados, "diario_resumo.entradas_hoje_total");
+  const saidasHoje = campoJSON(dados, "diario_resumo.saidas_hoje", []);
+  const saidasHojeTotal = campo(dados, "diario_resumo.saidas_hoje_total");
+  const resumoAtualizadoEm = campo(dados, "diario_resumo.atualizado_em");
+  const temResumoManha = entradasHoje.length > 0 || saidasHoje.length > 0 || resumoAtualizadoEm;
+
   const semDados = !totalHoje && !conciliadosHoje && !naoConciliadosHoje;
 
   return (
     <div>
+      <div className="section-title">
+        <h2>Resumo de hoje</h2>
+      </div>
+
+      {!temResumoManha ? (
+        <div className="callout">
+          Ainda sem o resumo da manha. A rotina "Resumo Diario" roda todos os
+          dias as 08:30 e ainda nao gravou valores na planilha-ponte.
+        </div>
+      ) : (
+        <>
+          <div className="kpi-grid">
+            <div className="kpi">
+              <span className="label">Entradas previstas hoje</span>
+              <span className="value mono">{formatBRL(entradasHojeTotal)}</span>
+            </div>
+            <div className="kpi">
+              <span className="label">Saidas previstas hoje</span>
+              <span className="value mono">{formatBRL(saidasHojeTotal)}</span>
+            </div>
+          </div>
+
+          <div className="panel" style={{ marginTop: "12px" }}>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Entrada</th>
+                    <th>Cliente</th>
+                    <th className="num">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entradasHoje.length === 0 ? (
+                    <tr>
+                      <td colSpan={3}>Nenhuma entrada prevista para hoje.</td>
+                    </tr>
+                  ) : (
+                    entradasHoje.map((e, i) => (
+                      <tr key={i}>
+                        <td>{e.evento || "—"}</td>
+                        <td>{e.cliente || "—"}</td>
+                        <td className="num mono">{formatBRL(e.valor)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="panel" style={{ marginTop: "12px" }}>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Saida</th>
+                    <th>Evento/categoria</th>
+                    <th className="num">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {saidasHoje.length === 0 ? (
+                    <tr>
+                      <td colSpan={3}>Nenhuma saida prevista para hoje.</td>
+                    </tr>
+                  ) : (
+                    saidasHoje.map((s, i) => (
+                      <tr key={i}>
+                        <td>
+                          {s.nome || "—"}
+                          {s.data_estimada ? (
+                            <span className="badge warn" style={{ marginLeft: "6px" }}>
+                              data estimada
+                            </span>
+                          ) : null}
+                        </td>
+                        <td>
+                          {[s.evento, s.categoria].filter(Boolean).join(" — ") || "—"}
+                        </td>
+                        <td className="num mono">{formatBRL(s.valor)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="callout">
+            <strong>Atualizado em:</strong> {resumoAtualizadoEm || "—"}
+          </div>
+        </>
+      )}
+
       <div className="section-title">
         <h2>Conciliacao diaria</h2>
       </div>
@@ -116,6 +218,15 @@ export default async function DiarioPage() {
             {a.cliente ? <> — {a.cliente}</> : null}
             {a.valor ? <div className="mono">{formatBRL(a.valor)}</div> : null}
             {a.data_prevista ? <div>Previsto para: {a.data_prevista}</div> : null}
+            {a.dias_atraso !== undefined && a.dias_atraso !== null ? (
+              <div>
+                <strong>
+                  {Number(a.dias_atraso) === 0
+                    ? "Vence hoje"
+                    : `${a.dias_atraso} dia(s) em atraso`}
+                </strong>
+              </div>
+            ) : null}
           </div>
         ))
       )}
