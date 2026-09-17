@@ -1,5 +1,12 @@
 import { getDados, campo, campoObs, campoJSON } from "../../lib/sheets";
 
+const CATEGORIA_LABEL = {
+  mao_de_obra_cache: "Mão de obra / Cachê",
+  fornecedores: "Fornecedores",
+  compra_material: "Compra de material",
+  reembolso: "Reembolso",
+};
+
 function formatBRL(valor) {
   const n = Number(String(valor).replace(",", "."));
   if (!valor || Number.isNaN(n)) return valor || "—";
@@ -11,6 +18,38 @@ function saudeChip(saude) {
   if (saude === "atencao") return <span className="chip warn">Atencao</span>;
   if (saude === "saudavel") return <span className="chip good">Saudavel</span>;
   return null;
+}
+
+function badgeList(badges) {
+  if (!badges || badges.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
+      {badges.map((b, i) => (
+        <span className="chip warn" key={i}>
+          {b}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function categoriasList(categorias) {
+  const entries = Object.entries(categorias || {}).filter(([, v]) => v);
+  if (entries.length === 0) {
+    return (
+      <tr>
+        <td colSpan={2} style={{ color: "var(--ink-muted)" }}>
+          Sem detalhamento de custos por categoria.
+        </td>
+      </tr>
+    );
+  }
+  return entries.map(([chave, valor]) => (
+    <tr key={chave}>
+      <td>{CATEGORIA_LABEL[chave] || chave}</td>
+      <td className="num mono">{valor}</td>
+    </tr>
+  ));
 }
 
 export const revalidate = 60;
@@ -41,14 +80,34 @@ export default async function EventosPage() {
   const margemMediaValor = campo(dados, "eventos.margem_media_mes_valor");
   const margemMediaNota = campo(dados, "eventos.margem_media_mes_nota");
   const ranking = campoJSON(dados, "eventos.ranking", []);
-  const destaques = campoJSON(dados, "eventos.destaques", []);
+  const destaques = campoJSON(dados, "eventos.destaques", {});
   const semFaturamento = campoJSON(dados, "eventos.sem_faturamento", []);
   const criticos = campoJSON(dados, "eventos.criticos", []);
   const escopoNota = campoObs(dados, "eventos.escopo_nota") || campo(dados, "eventos.escopo_nota");
   const atualizadoEm = campo(dados, "eventos.atualizado_em");
 
   const andamento = ranking.filter((e) => e.momento === "andamento");
-  const realizados = ranking.filter((e) => e.momento === "realizados" || !e.momento);
+  const realizados = ranking.filter((e) => e.momento === "realizado");
+
+  const destaqueCards = [];
+  if (destaques?.maior_margem_valor) {
+    destaqueCards.push({
+      label: "Maior margem (R$)",
+      valor: `${destaques.maior_margem_valor.nome || "—"} — ${destaques.maior_margem_valor.valor || "—"}`,
+    });
+  }
+  if (destaques?.maior_margem_percentual) {
+    destaqueCards.push({
+      label: "Maior margem (%)",
+      valor: `${destaques.maior_margem_percentual.nome || "—"} — ${destaques.maior_margem_percentual.valor || "—"}`,
+    });
+  }
+  if (destaques?.menor_margem) {
+    destaqueCards.push({
+      label: "Menor margem",
+      valor: `${destaques.menor_margem.nome || "—"} — ${destaques.menor_margem.valor || "—"} (${destaques.menor_margem.percentual || "—"})`,
+    });
+  }
 
   return (
     <div>
@@ -56,7 +115,7 @@ export default async function EventosPage() {
         <h2>Proximos eventos</h2>
       </div>
       {proximos.length === 0 ? (
-        <div className="callout">Nenhum evento futuro cadastrado.</div>
+        <div className="callout">Nenhum evento contratado com execucao futura identificado nesta janela.</div>
       ) : (
         <div className="panel">
           <div className="table-scroll">
@@ -66,16 +125,21 @@ export default async function EventosPage() {
                   <th>Evento</th>
                   <th>Cliente</th>
                   <th>Data</th>
-                  <th className="num">Valor previsto</th>
+                  <th className="num">Valor fechado</th>
                 </tr>
               </thead>
               <tbody>
                 {proximos.map((e, i) => (
                   <tr key={i}>
-                    <td>{e.evento || "—"}</td>
+                    <td>
+                      {e.nome || "—"}
+                      {e.sem_planilha_bordero ? (
+                        <div style={{ fontSize: "0.75rem", color: "var(--ink-muted)" }}>planilha de Borderô ainda não criada</div>
+                      ) : null}
+                    </td>
                     <td>{e.cliente || "—"}</td>
-                    <td className="mono">{e.data || "—"}</td>
-                    <td className="num mono">{formatBRL(e.valor)}</td>
+                    <td className="mono">{e.data_evento || e.data_evento_nota || "—"}</td>
+                    <td className="num mono">{e.valor_fechado || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -89,12 +153,12 @@ export default async function EventosPage() {
       </div>
       <div className="kpi-grid">
         <div className="kpi">
-          <span className="label">Margem media (valor)</span>
-          <span className="value mono">{formatBRL(margemMediaValor)}</span>
+          <span className="label">Margem media (%)</span>
+          <span className="value mono">{margemMediaValor ? `${margemMediaValor}%` : "—"}</span>
         </div>
         <div className="kpi">
-          <span className="label">Margem media (nota)</span>
-          <span className="value mono">{margemMediaNota || "—"}</span>
+          <span className="label">Contexto</span>
+          <span className="value" style={{ fontSize: "0.95rem" }}>{margemMediaNota || "—"}</span>
         </div>
       </div>
 
@@ -110,21 +174,24 @@ export default async function EventosPage() {
               <thead>
                 <tr>
                   <th>Evento</th>
-                  <th>Cliente</th>
-                  <th className="num">Receita</th>
-                  <th className="num">Custo</th>
+                  <th className="num">Fat. bruto</th>
+                  <th className="num">Custo total</th>
                   <th className="num">Margem</th>
+                  <th className="num">Margem %</th>
                   <th>Saude</th>
                 </tr>
               </thead>
               <tbody>
                 {andamento.map((e, i) => (
                   <tr key={i}>
-                    <td>{e.evento || "—"}</td>
-                    <td>{e.cliente || "—"}</td>
-                    <td className="num mono">{formatBRL(e.receita)}</td>
-                    <td className="num mono">{formatBRL(e.custo)}</td>
-                    <td className="num mono">{formatBRL(e.margem)}</td>
+                    <td>
+                      {e.nome || "—"}
+                      {badgeList(e.badges)}
+                    </td>
+                    <td className="num mono">{e.faturamento_bruto || "—"}</td>
+                    <td className="num mono">{e.custo_total || "—"}</td>
+                    <td className="num mono">{e.margem_valor || "—"}</td>
+                    <td className="num mono">{e.margem_percentual || "—"}</td>
                     <td>{saudeChip(e.saude)}</td>
                   </tr>
                 ))}
@@ -133,6 +200,28 @@ export default async function EventosPage() {
           </div>
         </div>
       )}
+
+      {semFaturamento.length > 0 ? (
+        <div className="callout" style={{ marginTop: "12px" }}>
+          <strong>Sem faturamento informado:</strong>
+          <table style={{ marginTop: "8px" }}>
+            <thead>
+              <tr>
+                <th>Evento</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {semFaturamento.map((e, i) => (
+                <tr key={i}>
+                  <td>{e.nome || "—"}</td>
+                  <td>{e.motivo || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
 
       <div className="section-title">
         <h2>Ja realizados</h2>
@@ -144,15 +233,14 @@ export default async function EventosPage() {
           {realizados.map((e, i) => (
             <details key={i} style={{ borderBottom: i < realizados.length - 1 ? "1px solid var(--rule)" : "none", paddingBlock: "10px" }}>
               <summary style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-                <span>
-                  {e.evento || "—"} {e.cliente ? <span className="mono" style={{ color: "var(--ink-muted)" }}> — {e.cliente}</span> : null}
-                </span>
+                <span>{e.nome || "—"}</span>
                 <span style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <span className="mono">{formatBRL(e.margem)}</span>
+                  <span className="mono">{e.margem_valor || "—"} ({e.margem_percentual || "—"})</span>
                   {saudeChip(e.saude)}
                 </span>
               </summary>
               <div style={{ paddingTop: "12px" }}>
+                {badgeList(e.badges)}
                 <table>
                   <thead>
                     <tr>
@@ -160,56 +248,11 @@ export default async function EventosPage() {
                       <th className="num">Custo</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {(e.custos || []).length === 0 ? (
-                      <tr>
-                        <td colSpan={2} style={{ color: "var(--ink-muted)" }}>
-                          Sem detalhamento de custos por categoria.
-                        </td>
-                      </tr>
-                    ) : (
-                      (e.custos || []).map((c, j) => (
-                        <tr key={j}>
-                          <td>{c.categoria || "—"}</td>
-                          <td className="num mono">{formatBRL(c.valor)}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
+                  <tbody>{categoriasList(e.categorias)}</tbody>
                 </table>
               </div>
             </details>
           ))}
-        </div>
-      )}
-
-      <div className="section-title">
-        <h2>Sem faturamento</h2>
-      </div>
-      {semFaturamento.length === 0 ? (
-        <div className="callout">Nenhum evento pendente de faturamento.</div>
-      ) : (
-        <div className="panel">
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Evento</th>
-                  <th>Cliente</th>
-                  <th>Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {semFaturamento.map((e, i) => (
-                  <tr key={i}>
-                    <td>{e.evento || "—"}</td>
-                    <td>{e.cliente || "—"}</td>
-                    <td className="mono">{e.data || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 
@@ -221,9 +264,7 @@ export default async function EventosPage() {
       ) : (
         criticos.map((e, i) => (
           <div className="callout warn" key={i} style={{ marginBottom: "10px" }}>
-            <strong>{e.evento || "Evento"}</strong>
-            {e.cliente ? <> — {e.cliente}</> : null}
-            {e.motivo ? <div>{e.motivo}</div> : null}
+            <strong>{e.nome || "Evento"}</strong> — situação critica identificada (custo acima do limite saudável em relação ao faturamento).
           </div>
         ))
       )}
@@ -231,14 +272,14 @@ export default async function EventosPage() {
       <div className="section-title">
         <h2>Destaques do mes</h2>
       </div>
-      {destaques.length === 0 ? (
+      {destaqueCards.length === 0 ? (
         <div className="callout">Sem destaques no momento.</div>
       ) : (
         <div className="kpi-grid">
-          {destaques.map((d, i) => (
+          {destaqueCards.map((d, i) => (
             <div className="kpi" key={i}>
-              <span className="label">{d.label || "—"}</span>
-              <span className="value mono">{d.valor || "—"}</span>
+              <span className="label">{d.label}</span>
+              <span className="value" style={{ fontSize: "1.1rem" }}>{d.valor}</span>
             </div>
           ))}
         </div>
