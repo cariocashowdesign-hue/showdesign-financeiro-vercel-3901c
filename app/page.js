@@ -52,7 +52,7 @@ export default async function HomePage() {
   const diarioAlertas = campoJSON(dados, "diario.alerta_critico", []);
 
   // --- Eventos ---
-  const margemValor = campo(dados, "eventos.margem_media_mes_valor");
+  const margemValor = campo(dados, "eventos.margem_media_mes_valor"); // percentual (ex "69.2"), nao moeda
   const margemNota = campo(dados, "eventos.margem_media_mes_nota");
   const ranking = campoJSON(dados, "eventos.ranking", []);
   const andamentoCount = ranking.filter((e) => e.momento === "andamento").length;
@@ -69,23 +69,28 @@ export default async function HomePage() {
   const semSemana = !semanaPeriodo && !entradas && !saidas && !resultado;
 
   // --- Alertas consolidados de todas as areas ---
-  const alertasHome = campoJSON(dados, "home.alertas_eventos", []).map((a) => ({
-    origem: "Eventos",
-    titulo: a.evento || "Evento",
-    detalhe: [a.cliente, a.motivo].filter(Boolean).join(" — "),
-    valor: a.valor,
-  }));
+  // home.alertas_eventos: [{nivel:"critical"|"neutral", titulo, texto}]
+  const alertasHome = campoJSON(dados, "home.alertas_eventos", [])
+    .filter((a) => a.nivel !== "neutral")
+    .map((a) => ({
+      origem: "Eventos",
+      titulo: a.titulo || "Evento",
+      detalhe: a.texto || "",
+      valor: null,
+    }));
+  // diario.alerta_critico: [{evento, cliente, valor, data_prevista}]
   const alertasDiario = diarioAlertas.map((a) => ({
     origem: "Diário",
     titulo: a.evento || "Recebimento",
     detalhe: [a.cliente, a.data_prevista ? `previsto para ${a.data_prevista}` : null].filter(Boolean).join(" — "),
     valor: a.valor,
   }));
+  // eventos.criticos: [{nome}] -- a rotina so grava o nome, sem motivo/valor
   const alertasCriticos = eventosCriticos.map((a) => ({
     origem: "Eventos",
-    titulo: a.evento || "Evento",
-    detalhe: [a.cliente, a.motivo].filter(Boolean).join(" — "),
-    valor: a.valor,
+    titulo: a.nome || "Evento",
+    detalhe: "Situação crítica (custo acima do limite saudável em relação ao faturamento) — ver Eventos para detalhes.",
+    valor: null,
   }));
   const alertas = [...alertasHome, ...alertasDiario, ...alertasCriticos];
 
@@ -139,7 +144,7 @@ export default async function HomePage() {
                 <IconChart />
               </span>
             </div>
-            <span className="hero-value mono">{margemValor ? formatBRL(margemValor) : "—"}</span>
+            <span className="hero-value mono">{margemValor ? `${margemValor}%` : "—"}</span>
             <span className="hero-sub">{margemNota || "Sem nota registrada"}</span>
           </div>
         </div>
