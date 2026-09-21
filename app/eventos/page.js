@@ -68,6 +68,16 @@ export default async function EventosPage() {
       </div>
 
       <div className="section-title">
+        <h2>Evento em foco</h2>
+        <span className="section-hint">clique num evento para ver o borderô com métricas</span>
+      </div>
+      <p style={{ color: "var(--ink-muted)", fontSize: "13px", marginTop: "-8px", marginBottom: "6px" }}>
+        Composição de custo por categoria (mão de obra/cachê, fornecedores, compra de material, reembolso) e margem de cada evento.
+        Dá pra abrir vários eventos ao mesmo tempo, pra comparar.
+      </p>
+      <EventExplorer andamento={andamento} realizados={realizados} />
+
+      <div className="section-title" style={{ marginTop: "24px" }}>
         <h2>Proximos eventos</h2>
       </div>
       {proximos.length === 0 ? (
@@ -117,16 +127,6 @@ export default async function EventosPage() {
           <span className="value" style={{ fontSize: "0.95rem" }}>{margemMediaNota || "—"}</span>
         </div>
       </div>
-
-      <div className="section-title">
-        <h2>Evento em foco</h2>
-        <span className="section-hint">clique num evento para ver o borderô com métricas</span>
-      </div>
-      <p style={{ color: "var(--ink-muted)", fontSize: "13px", marginTop: "-8px", marginBottom: "6px" }}>
-        Composição de custo por categoria (mão de obra/cachê, fornecedores, compra de material, reembolso) e margem de cada evento.
-        Dá pra abrir vários eventos ao mesmo tempo, pra comparar.
-      </p>
-      <EventExplorer andamento={andamento} realizados={realizados} />
       {semFaturamento.length > 0 ? (
         <div className="callout" style={{ marginTop: "16px" }}>
           <strong>Sem faturamento informado:</strong>
