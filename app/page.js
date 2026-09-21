@@ -1,5 +1,5 @@
 import { getDados, campo, campoJSON, campoContagem } from "../lib/sheets";
-import { IconWallet, IconStack, IconChart, IconCalendar, IconClock, IconAlert, IconTrend } from "./icons";
+import { IconWallet, IconStack, IconChart, IconCalendar, IconClock, IconInfo, IconTrend } from "./icons";
 
 function formatBRL(valor) {
   const n = Number(String(valor).replace(",", "."));
@@ -26,7 +26,7 @@ export default async function HomePage() {
     return (
       <div>
         <div className="section-title">
-          <h2>Resumo executivo</h2>
+          <h2>Painel geral</h2>
         </div>
         <div className="callout warn">
           <strong>Erro ao ler a planilha-ponte:</strong> {erro}
@@ -69,7 +69,6 @@ export default async function HomePage() {
   const semSemana = !semanaPeriodo && !entradas && !saidas && !resultado;
 
   // --- Alertas consolidados de todas as areas ---
-  // home.alertas_eventos: [{nivel:"critical"|"neutral", titulo, texto}]
   const alertasHome = campoJSON(dados, "home.alertas_eventos", [])
     .filter((a) => a.nivel !== "neutral")
     .map((a) => ({
@@ -78,14 +77,12 @@ export default async function HomePage() {
       detalhe: a.texto || "",
       valor: null,
     }));
-  // diario.alerta_critico: [{evento, cliente, valor, data_prevista}]
   const alertasDiario = diarioAlertas.map((a) => ({
     origem: "Diário",
     titulo: a.evento || "Recebimento",
     detalhe: [a.cliente, a.data_prevista ? `previsto para ${a.data_prevista}` : null].filter(Boolean).join(" — "),
     valor: a.valor,
   }));
-  // eventos.criticos: [{nome}] -- a rotina so grava o nome, sem motivo/valor
   const alertasCriticos = eventosCriticos.map((a) => ({
     origem: "Eventos",
     titulo: a.nome || "Evento",
@@ -96,14 +93,36 @@ export default async function HomePage() {
 
   return (
     <div>
+      <div className="page-eyebrow">
+        <span className="dot" /> Financeiro Showdesign <span className="sep">·</span> Painel geral
+      </div>
+      <div className="page-head">
+        <h1 className="page-title">Painel geral</h1>
+        <p className="page-sub">
+          Caixa, alertas do dia e o resumo de cada área — Diário, Eventos e Semanal — tudo numa tela só.
+        </p>
+      </div>
+
       <div className="section-title">
-        <h2>Resumo executivo</h2>
+        <h2>Posição de caixa</h2>
+        {!semSaldo ? <span className="section-hint">contas Itaú e Inter</span> : null}
       </div>
 
       {semSaldo ? (
         <div className="callout">Ainda sem dados de saldo. A rotina de saldo em caixa ainda nao rodou.</div>
       ) : (
         <div className="hero-grid">
+          <div className="hero-card primary accent">
+            <div className="hero-top">
+              <span className="hero-label">Total em caixa</span>
+              <span className="hero-icon">
+                <IconStack />
+              </span>
+            </div>
+            <span className="hero-value mono">{formatBRL(saldoTotal)}</span>
+            <span className="hero-sub">Itaú + Inter</span>
+          </div>
+
           <div className="hero-card">
             <div className="hero-top">
               <span className="hero-label">Saldo Itaú</span>
@@ -126,17 +145,6 @@ export default async function HomePage() {
             <span className="hero-sub">Atualizado {saldoInterAt || "—"}</span>
           </div>
 
-          <div className="hero-card accent">
-            <div className="hero-top">
-              <span className="hero-label">Saldo Total (Itaú + Inter)</span>
-              <span className="hero-icon">
-                <IconStack />
-              </span>
-            </div>
-            <span className="hero-value mono">{formatBRL(saldoTotal)}</span>
-            <span className="hero-sub">Soma dos dois bancos</span>
-          </div>
-
           <div className="hero-card">
             <div className="hero-top">
               <span className="hero-label">Margem média do mês</span>
@@ -151,7 +159,45 @@ export default async function HomePage() {
       )}
 
       <div className="section-title">
-        <h2>Por área</h2>
+        <h2>Alertas</h2>
+        <span className="section-hint">conciliação e saúde dos eventos</span>
+      </div>
+
+      {alertas.length === 0 ? (
+        <div className="info-feed">
+          <div className="info-row">
+            <span className="ico">
+              <IconInfo />
+            </span>
+            <div className="body">Nenhuma pendência crítica sinalizada na última execução.</div>
+          </div>
+        </div>
+      ) : (
+        <div className="info-feed">
+          {alertas.map((a, i) => (
+            <div className="info-row" key={i}>
+              <span className="ico">
+                <IconInfo />
+              </span>
+              <div className="body">
+                <strong>{a.titulo}</strong>
+                {a.detalhe ? ` — ${a.detalhe}` : ""}
+                {a.valor ? <span className="mono" style={{ marginLeft: "8px" }}>{formatBRL(a.valor)}</span> : null}
+                <span
+                  className="mono"
+                  style={{ marginLeft: "8px", fontSize: "10.5px", color: "var(--ink-faint)", textTransform: "uppercase" }}
+                >
+                  {a.origem}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="section-title">
+        <h2>Resumo rápido</h2>
+        <span className="section-hint">detalhe completo em Diário, Eventos e Semanal</span>
       </div>
 
       <div className="area-grid">
@@ -199,7 +245,7 @@ export default async function HomePage() {
             </div>
             <div className="mini-stat">
               <span className="n mono">{eventosCriticos.length}</span>
-              <span className="l">Críticos</span>
+              <span className="l">Crɴicos</span>
             </div>
             <div className="mini-stat">
               <span className="n mono">{eventosSemFaturamento.length}</span>
@@ -244,32 +290,6 @@ export default async function HomePage() {
           </span>
         </div>
       </div>
-
-      <div className="section-title">
-        <h2>Alertas</h2>
-      </div>
-
-      {alertas.length === 0 ? (
-        <div className="callout">Nenhum alerta crítico no momento.</div>
-      ) : (
-        <div className="alert-feed">
-          {alertas.map((a, i) => (
-            <div className="alert-row" key={i}>
-              <span className="hero-icon" style={{ color: "var(--warn)", background: "var(--warn-wash)" }}>
-                <IconAlert />
-              </span>
-              <div className="alert-body">
-                <span className="alert-title">
-                  <strong>{a.titulo}</strong>
-                  {a.detalhe ? ` — ${a.detalhe}` : ""}
-                </span>
-                {a.valor ? <span className="alert-meta mono">{formatBRL(a.valor)}</span> : null}
-              </div>
-              <span className="alert-origin">{a.origem}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
