@@ -1,56 +1,5 @@
 import { getDados, campo, campoObs, campoJSON } from "../../lib/sheets";
-
-const CATEGORIA_LABEL = {
-  mao_de_obra_cache: "Mão de obra / Cachê",
-  fornecedores: "Fornecedores",
-  compra_material: "Compra de material",
-  reembolso: "Reembolso",
-};
-
-function formatBRL(valor) {
-  const n = Number(String(valor).replace(",", "."));
-  if (!valor || Number.isNaN(n)) return valor || "—";
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function saudeChip(saude) {
-  if (saude === "critico") return <span className="chip bad">Critico</span>;
-  if (saude === "atencao") return <span className="chip warn">Atencao</span>;
-  if (saude === "saudavel") return <span className="chip good">Saudavel</span>;
-  return null;
-}
-
-function badgeList(badges) {
-  if (!badges || badges.length === 0) return null;
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
-      {badges.map((b, i) => (
-        <span className="chip warn" key={i}>
-          {b}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function categoriasList(categorias) {
-  const entries = Object.entries(categorias || {}).filter(([, v]) => v);
-  if (entries.length === 0) {
-    return (
-      <tr>
-        <td colSpan={2} style={{ color: "var(--ink-muted)" }}>
-          Sem detalhamento de custos por categoria.
-        </td>
-      </tr>
-    );
-  }
-  return entries.map(([chave, valor]) => (
-    <tr key={chave}>
-      <td>{CATEGORIA_LABEL[chave] || chave}</td>
-      <td className="num mono">{valor}</td>
-    </tr>
-  ));
-}
+import EventExplorer from "./EventExplorer";
 
 export const revalidate = 60;
 
@@ -111,6 +60,13 @@ export default async function EventosPage() {
 
   return (
     <div>
+      <div className="page-eyebrow">
+        <span className="dot" /> Financeiro Showdesign <span className="sep">·</span> Eventos
+      </div>
+      <div className="page-head">        <h1 className="page-title">Relatório por evento — margem</h1>
+        <p className="page-sub">Detalhamento de custo por categoria e margem, evento por evento.</p>
+      </div>
+
       <div className="section-title">
         <h2>Proximos eventos</h2>
       </div>
@@ -163,46 +119,16 @@ export default async function EventosPage() {
       </div>
 
       <div className="section-title">
-        <h2>Em andamento</h2>
+        <h2>Evento em foco</h2>
+        <span className="section-hint">clique num evento para ver o borderô com métricas</span>
       </div>
-      {andamento.length === 0 ? (
-        <div className="callout">Nenhum evento em andamento no momento.</div>
-      ) : (
-        <div className="panel">
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Evento</th>
-                  <th className="num">Fat. bruto</th>
-                  <th className="num">Custo total</th>
-                  <th className="num">Margem</th>
-                  <th className="num">Margem %</th>
-                  <th>Saude</th>
-                </tr>
-              </thead>
-              <tbody>
-                {andamento.map((e, i) => (
-                  <tr key={i}>
-                    <td>
-                      {e.nome || "—"}
-                      {badgeList(e.badges)}
-                    </td>
-                    <td className="num mono">{e.faturamento_bruto || "—"}</td>
-                    <td className="num mono">{e.custo_total || "—"}</td>
-                    <td className="num mono">{e.margem_valor || "—"}</td>
-                    <td className="num mono">{e.margem_percentual || "—"}</td>
-                    <td>{saudeChip(e.saude)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
+      <p style={{ color: "var(--ink-muted)", fontSize: "13px", marginTop: "-8px", marginBottom: "6px" }}>
+        Composição de custo por categoria (mão de obra/cachê, fornecedores, compra de material, reembolso) e margem de cada evento.
+        Dá pra abrir vários eventos ao mesmo tempo, pra comparar.
+      </p>
+      <EventExplorer andamento={andamento} realizados={realizados} />
       {semFaturamento.length > 0 ? (
-        <div className="callout" style={{ marginTop: "12px" }}>
+        <div className="callout" style={{ marginTop: "16px" }}>
           <strong>Sem faturamento informado:</strong>
           <table style={{ marginTop: "8px" }}>
             <thead>
@@ -223,40 +149,7 @@ export default async function EventosPage() {
         </div>
       ) : null}
 
-      <div className="section-title">
-        <h2>Ja realizados</h2>
-      </div>
-      {realizados.length === 0 ? (
-        <div className="callout">Nenhum evento realizado listado.</div>
-      ) : (
-        <div className="panel">
-          {realizados.map((e, i) => (
-            <details key={i} style={{ borderBottom: i < realizados.length - 1 ? "1px solid var(--rule)" : "none", paddingBlock: "10px" }}>
-              <summary style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-                <span>{e.nome || "—"}</span>
-                <span style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <span className="mono">{e.margem_valor || "—"} ({e.margem_percentual || "—"})</span>
-                  {saudeChip(e.saude)}
-                </span>
-              </summary>
-              <div style={{ paddingTop: "12px" }}>
-                {badgeList(e.badges)}
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Categoria</th>
-                      <th className="num">Custo</th>
-                    </tr>
-                  </thead>
-                  <tbody>{categoriasList(e.categorias)}</tbody>
-                </table>
-              </div>
-            </details>
-          ))}
-        </div>
-      )}
-
-      <div className="section-title">
+      <div className="section-title bad">
         <h2>Eventos criticos</h2>
       </div>
       {criticos.length === 0 ? (
@@ -264,7 +157,7 @@ export default async function EventosPage() {
       ) : (
         criticos.map((e, i) => (
           <div className="callout warn" key={i} style={{ marginBottom: "10px" }}>
-            <strong>{e.nome || "Evento"}</strong> — situação critica identificada (custo acima do limite saudável em relação ao faturamento).
+            <strong>{e.nome || "Evento"}</strong> — situação crítica identificada (custo acima do limite saudável em relação ao faturamento).
           </div>
         ))
       )}
