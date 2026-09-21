@@ -48,7 +48,15 @@ export default async function DiarioPage() {
 
   return (
     <div>
-      <div className="section-title">
+      <div className="page-eyebrow">
+        <span className="dot" /> Financeiro Showdesign <span className="sep">·</span> Diário
+      </div>
+      <div className="page-head">
+        <h1 className="page-title">Resumo do dia</h1>
+        <p className="page-sub">O que entrou e o que saiu hoje, e a conciliação bancária do dia.</p>
+      </div>
+
+      <div className="section-title good">
         <h2>Resumo de hoje</h2>
       </div>
 
@@ -143,7 +151,7 @@ export default async function DiarioPage() {
         </>
       )}
 
-      <div className="section-title">
+      <div className="section-title neutral">
         <h2>Conciliacao diaria</h2>
       </div>
 
@@ -174,7 +182,7 @@ export default async function DiarioPage() {
         </>
       )}
 
-      <div className="section-title">
+      <div className="section-title good">
         <h2>Recebimentos conciliados</h2>
       </div>
       {recebimentosConciliados.length === 0 ? (
@@ -206,7 +214,7 @@ export default async function DiarioPage() {
         </div>
       )}
 
-      <div className="section-title">
+      <div className="section-title bad">
         <h2>Alertas criticos</h2>
       </div>
       {alertaCritico.length === 0 ? (
