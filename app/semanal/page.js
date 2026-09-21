@@ -6,6 +6,12 @@ function formatBRL(valor) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function sinal(valor) {
+  const n = Number(String(valor).replace(",", "."));
+  if (Number.isNaN(n)) return "";
+  return n < 0 ? "bad" : "good";
+}
+
 export const revalidate = 60;
 
 export default async function SemanalPage() {
@@ -21,7 +27,7 @@ export default async function SemanalPage() {
     return (
       <div>
         <div className="section-title">
-          <h2>Relatorio semanal</h2>
+          <h2>Semanal</h2>
         </div>
         <div className="callout warn">
           <strong>Erro ao ler a planilha-ponte:</strong> {erro}
@@ -40,11 +46,15 @@ export default async function SemanalPage() {
 
   return (
     <div>
-      <div className="section-title">
-        <h2>Relatorio semanal</h2>
-        {periodo ? <span className="mono">{periodo}</span> : null}
+      <div className="page-eyebrow">
+        <span className="dot" /> Financeiro Showdesign <span className="sep">·</span> Semanal
       </div>
-
+      <div className="page-head">
+        <h1 className="page-title">Projeção da semana</h1>
+        <p className="page-sub">
+          {periodo ? `Semana de ${periodo}.` : "Entradas, saídas e resultado projetados para a semana, a partir dos contratos e custos lançados."}
+        </p>
+      </div>
       {semDados ? (
         <div className="callout">
           Ainda sem dados semanais. A rotina de relatorio semanal ainda nao
@@ -52,21 +62,33 @@ export default async function SemanalPage() {
         </div>
       ) : (
         <>
+          <div className="section-title">
+            <h2>Projeção por contrato</h2>
+            <span className="section-hint">valores projetados, planilha-ponte</span>
+          </div>
+
           <div className="kpi-grid">
-            <div className="kpi">
+            <div className="kpi plain">
               <span className="label">Entradas projetadas</span>
-              <span className="value mono">{formatBRL(entradas)}</span>
+              <span className="value good mono">{formatBRL(entradas)}</span>
             </div>
-            <div className="kpi">
+            <div className="kpi plain">
               <span className="label">Saidas projetadas</span>
-              <span className="value mono">{formatBRL(saidas)}</span>
+              <span className="value bad mono">{formatBRL(saidas)}</span>
             </div>
-            <div className="kpi">
+            <div className="kpi plain">
               <span className="label">Resultado liquido projetado</span>
-              <span className="value mono">{formatBRL(resultado)}</span>
+              <span className={`value ${sinal(resultado)} mono`}>{formatBRL(resultado)}</span>
             </div>
           </div>
-          <div className="callout">
+
+          <div className="callout" style={{ marginTop: "16px" }}>
+            <strong>Nota:</strong> por enquanto a planilha-ponte só grava os valores projetados por contrato (entradas, saídas e
+            resultado). Não há ainda uma rotina que confirme, separadamente, o que já entrou/saiu de fato no banco durante a semana —
+            isso pode ser adicionado depois, se você quiser essa automação.
+          </div>
+
+          <div className="callout" style={{ marginTop: "12px" }}>
             <strong>Atualizado em:</strong> {atualizadoEm || "—"}
           </div>
         </>
