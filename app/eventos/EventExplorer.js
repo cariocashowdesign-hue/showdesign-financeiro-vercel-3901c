@@ -45,6 +45,7 @@ function buildCategorias(categorias, custoTotal) {
     };
   });
 }
+
 function Donut({ items, centerValue, centerLabel }) {
   const r = 40;
   const circumference = 2 * Math.PI * r;
@@ -90,7 +91,8 @@ function saudeChip(saude) {
   return null;
 }
 
-function badgeList(badges) {  if (!badges || badges.length === 0) return null;
+function badgeList(badges) {
+  if (!badges || badges.length === 0) return null;
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
       {badges.map((b, i) => (
@@ -136,26 +138,6 @@ export default function EventExplorer({ andamento, realizados }) {
                 >
                   {e.nome || "—"}
                 </button>
-              );            })}
-          </div>
-        </div>
-      ) : null}
-
-      {realizados.length > 0 ? (
-        <div className="event-pill-group">
-          <span className="glabel">Realizados</span>
-          <div className="event-pills">
-            {realizados.map((e, i) => {
-              const key = `realizado:${i}`;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={`event-pill${open.includes(key) ? " active" : ""}`}
-                  onClick={() => toggle(key)}
-                >
-                  {e.nome || "—"}
-                </button>
               );
             })}
           </div>
@@ -170,7 +152,7 @@ export default function EventExplorer({ andamento, realizados }) {
         <div className="event-panels">
           {openEvents.map((e) => {
             const items = buildCategorias(e.categorias, e.custo_total);
-            return (
+            return         )
               <div className="event-panel" key={e._key}>
                 <div className="event-panel-head">
                   <h3>{e.nome || "—"}</h3>
@@ -182,6 +164,7 @@ export default function EventExplorer({ andamento, realizados }) {
                   </div>
                 </div>
                 {badgeList(e.badges)}
+
                 <div className="donut-block">
                   <Donut items={items} centerValue={e.margem_percentual} centerLabel="Margem" />
                   <div className="cat-legend">
@@ -221,12 +204,33 @@ export default function EventExplorer({ andamento, realizados }) {
                     <span className="n mono">{e.margem_percentual || "—"}</span>
                     <span className="l">Margem %</span>
                   </div>
-                </div>
+                        </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {realizados.length > 0 ? (
+        <details className="event-realizados">
+          <summary>Eventos já realizados ({realizados.length})</summary>
+          <div className="event-pills">
+            {realizados.map((e, i) => {
+              const key = `realizado:${i}`;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`event-pill${open.includes(key) ? " active" : ""}`}
+                  onClick={() => toggle(key)}
+                >
+                  {e.nome || "—"}
+                </button>
+              );
+            })}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }
