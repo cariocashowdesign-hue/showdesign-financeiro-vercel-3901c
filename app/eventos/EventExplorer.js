@@ -152,7 +152,7 @@ export default function EventExplorer({ andamento, realizados }) {
         <div className="event-panels">
           {openEvents.map((e) => {
             const items = buildCategorias(e.categorias, e.custo_total);
-            return         )
+            return         (
               <div className="event-panel" key={e._key}>
                 <div className="event-panel-head">
                   <h3>{e.nome || "—"}</h3>
