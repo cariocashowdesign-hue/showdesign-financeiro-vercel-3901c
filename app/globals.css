@@ -180,3 +180,8 @@ footer.site .wrap{display:flex; justify-content:space-between; gap:12px; flex-wr
 .event-realizados summary::before{content:"▸"; font-size:9px; color:var(--ink-faint); transition:transform .15s;}
 .event-realizados[open] summary::before{transform:rotate(90deg);}
 .event-realizados .event-pills{margin-top:10px;}
+
+/* --- Campo de busca (usado em "Fora da Programacao" no Semanal) --- */
+.search-input{background:var(--surface); border:1px solid var(--rule); color:var(--ink); border-radius:99px; padding:8px 16px; font-family:"IBM Plex Sans",sans-serif; font-size:13px; min-width:200px;}
+.search-input:focus{outline:none; border-color:var(--yellow-dim);}
+.search-input::placeholder{color:var(--ink-faint);}
