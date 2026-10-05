@@ -85,9 +85,9 @@ function Donut({ items, centerValue, centerLabel }) {
 }
 
 function saudeChip(saude) {
-  if (saude === "critico") return <span className="chip bad">Critico</span>;
-  if (saude === "atencao") return <span className="chip warn">Atencao</span>;
-  if (saude === "saudavel") return <span className="chip good">Saudavel</span>;
+  if (saude === "critico") return <span className="chip bad">Crítico</span>;
+  if (saude === "atencao") return <span className="chip warn">Atenção</span>;
+  if (saude === "saudavel") return <span className="chip good">Saudável</span>;
   return null;
 }
 
@@ -104,21 +104,40 @@ function badgeList(badges) {
   );
 }
 
-export default function EventExplorer({ andamento, realizados }) {
-  const [open, setOpen] = useState([]);
+function Pill({ e, k, open, toggle }) {
+  return (
+    <button
+      type="button"
+      className={`event-pill${open.includes(k) ? " active" : ""}`}
+      onClick={() => toggle(k)}
+    >
+      {e.nome || "—"}
+      {e._sub ? <span className="pill-sub">{e._sub}</span> : null}
+    </button>
+  );
+}
+
+// Explorador "Evento em foco" no mesmo formato do painel da Atom:
+// tres grupos sempre visiveis (Em producao / Proximos eventos / Realizados),
+// clique abre o painel do evento, clique de novo (ou no x) fecha, varios ao mesmo tempo.
+export default function EventExplorer({ andamento, proximos, realizados }) {
+  const all = [
+    ...andamento.map((e, i) => ({ ...e, _key: `andamento:${i}`, _tipo: "borderô" })),
+    ...proximos.map((e, i) => ({ ...e, _key: `proximo:${i}`, _tipo: "proximo" })),
+    ...realizados.map((e, i) => ({ ...e, _key: `realizado:${i}`, _tipo: "borderô" })),
+  ];
+
+  // Como na Atom, a pagina ja abre com o primeiro evento em producao aberto.
+  const [open, setOpen] = useState(andamento.length > 0 ? ["andamento:0"] : []);
 
   function toggle(key) {
     setOpen((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   }
 
-  const all = [
-    ...andamento.map((e, i) => ({ ...e, _key: `andamento:${i}` })),
-    ...realizados.map((e, i) => ({ ...e, _key: `realizado:${i}` })),
-  ];
   const openEvents = all.filter((e) => open.includes(e._key));
 
   if (all.length === 0) {
-    return <div className="callout">Nenhum evento com dados de custo disponível no momento.</div>;
+    return <div className="callout">Nenhum evento disponível no momento.</div>;
   }
 
   return (
@@ -127,32 +146,84 @@ export default function EventExplorer({ andamento, realizados }) {
         <div className="event-pill-group">
           <span className="glabel">Em produção</span>
           <div className="event-pills">
-            {andamento.map((e, i) => {
-              const key = `andamento:${i}`;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={`event-pill${open.includes(key) ? " active" : ""}`}
-                  onClick={() => toggle(key)}
-                >
-                  {e.nome || "—"}
-                </button>
-              );
-            })}
+            {all
+              .filter((e) => e._key.startsWith("andamento:"))
+              .map((e) => (
+                <Pill key={e._key} e={e} k={e._key} open={open} toggle={toggle} />
+              ))}
+          </div>
+        </div>
+      ) : null}
+
+      {proximos.length > 0 ? (
+        <div className="event-pill-group">
+          <span className="glabel">Próximos eventos</span>
+          <div className="event-pills">
+            {all
+              .filter((e) => e._key.startsWith("proximo:"))
+              .map((e) => (
+                <Pill key={e._key} e={e} k={e._key} open={open} toggle={toggle} />
+              ))}
+          </div>
+        </div>
+      ) : null}
+
+      {realizados.length > 0 ? (
+        <div className="event-pill-group">
+          <span className="glabel">Realizados</span>
+          <div className="event-pills">
+            {all
+              .filter((e) => e._key.startsWith("realizado:"))
+              .map((e) => (
+                <Pill key={e._key} e={e} k={e._key} open={open} toggle={toggle} />
+              ))}
           </div>
         </div>
       ) : null}
 
       {openEvents.length === 0 ? (
         <p style={{ color: "var(--ink-faint)", fontSize: "13px", marginTop: "6px" }}>
-          Clique num evento acima para abrir a composição de custo e a margem dele. Dá pra abrir vários ao mesmo tempo.
+          Clique num evento acima para abrir o painel dele. Dá pra abrir vários ao mesmo tempo.
         </p>
       ) : (
         <div className="event-panels">
           {openEvents.map((e) => {
+            // Evento futuro: ainda nao tem composicao de custo, so os dados do contrato.
+            if (e._tipo === "proximo") {
+              return (
+                <div className="event-panel" key={e._key}>
+                  <div className="event-panel-head">
+                    <h3>{e.nome || "—"}</h3>
+                    <button type="button" className="event-panel-close" onClick={() => toggle(e._key)} aria-label="Fechar">
+                      ×
+                    </button>
+                  </div>
+                  {e._sub ? <div className="event-panel-sub">{e._sub}</div> : null}
+                  <div className="event-panel-kpis" style={{ borderTop: "none", paddingTop: 0 }}>
+                    <div className="mini-stat">
+                      <span className="n mono">{e.valor_fechado || "—"}</span>
+                      <span className="l">Valor fechado</span>
+                    </div>
+                    <div className="mini-stat">
+                      <span className="n mono" style={{ fontSize: "14px" }}>{e.data_evento || e.data_evento_nota || "—"}</span>
+                      <span className="l">Data</span>
+                    </div>
+                    <div className="mini-stat">
+                      <span className="n mono" style={{ fontSize: "14px" }}>{e.cliente || "—"}</span>
+                      <span className="l">Cliente</span>
+                    </div>
+                  </div>
+                  {e.sem_planilha_bordero ? (
+                    <p style={{ color: "var(--ink-faint)", fontSize: "12.5px", margin: "10px 0 0" }}>
+                      Planilha de borderô ainda não criada — a composição de custo aparece quando ela existir.
+                    </p>
+                  ) : null}
+                </div>
+              );
+            }
+
             const items = buildCategorias(e.categorias, e.custo_total);
-            return         (
+            return (
               <div className="event-panel" key={e._key}>
                 <div className="event-panel-head">
                   <h3>{e.nome || "—"}</h3>
@@ -163,6 +234,7 @@ export default function EventExplorer({ andamento, realizados }) {
                     </button>
                   </div>
                 </div>
+                {e._sub ? <div className="event-panel-sub">{e._sub}</div> : null}
                 {badgeList(e.badges)}
 
                 <div className="donut-block">
@@ -190,11 +262,11 @@ export default function EventExplorer({ andamento, realizados }) {
                 <div className="event-panel-kpis">
                   <div className="mini-stat">
                     <span className="n mono">{e.faturamento_bruto || "—"}</span>
-                    <span className="l">Fat. bruto</span>
+                    <span className="l">Faturamento</span>
                   </div>
                   <div className="mini-stat">
                     <span className="n mono">{e.custo_total || "—"}</span>
-                    <span className="l">Custo total</span>
+                    <span className="l">Custo</span>
                   </div>
                   <div className="mini-stat">
                     <span className="n mono">{e.margem_valor || "—"}</span>
@@ -204,33 +276,12 @@ export default function EventExplorer({ andamento, realizados }) {
                     <span className="n mono">{e.margem_percentual || "—"}</span>
                     <span className="l">Margem %</span>
                   </div>
-                        </div>
+                </div>
               </div>
             );
           })}
         </div>
       )}
-
-      {realizados.length > 0 ? (
-        <details className="event-realizados">
-          <summary>Eventos já realizados ({realizados.length})</summary>
-          <div className="event-pills">
-            {realizados.map((e, i) => {
-              const key = `realizado:${i}`;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={`event-pill${open.includes(key) ? " active" : ""}`}
-                  onClick={() => toggle(key)}
-                >
-                  {e.nome || "—"}
-                </button>
-              );
-            })}
-          </div>
-        </details>
-      ) : null}
     </div>
   );
 }
