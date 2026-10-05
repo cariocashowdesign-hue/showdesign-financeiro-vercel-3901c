@@ -11,6 +11,18 @@ function isNum(valor) {
   return valor !== "" && valor !== undefined && valor !== null && !Number.isNaN(Number(String(valor).replace(",", ".")));
 }
 
+function toNum(valor) {
+  return isNum(valor) ? Number(String(valor).replace(",", ".")) : null;
+}
+
+function formatBRLSigned(n) {
+  if (n === null) return "—";
+  const abs = Math.abs(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  if (n > 0) return `+ ${abs}`;
+  if (n < 0) return `− ${abs}`;
+  return abs;
+}
+
 export const revalidate = 60;
 
 export default async function HomePage() {
@@ -43,6 +55,15 @@ export default async function HomePage() {
   const semSaldo = !isNum(saldoItau) && !isNum(saldoInter);
   const saldoTotal = (isNum(saldoItau) ? Number(String(saldoItau).replace(",", ".")) : 0) +
     (isNum(saldoInter) ? Number(String(saldoInter).replace(",", ".")) : 0);
+
+  // --- Intercompany ATOM x Showdesign ---
+  // + = ATOM deve a Showdesign | − = Showdesign deve a ATOM. Sem dado na planilha-ponte, mostra "—".
+  const icAtomDeve = toNum(campo(dados, "home.intercompany_atom_deve"));
+  const icSdnDeve = toNum(campo(dados, "home.intercompany_sdn_deve"));
+  const icSaldo = toNum(campo(dados, "home.intercompany_saldo"));
+  const icAtualizadoEm = campo(dados, "home.intercompany_atualizado_em");
+  const icSemDados = icAtomDeve === null && icSdnDeve === null && icSaldo === null;
+  const icSaldoClasse = icSaldo === null || icSaldo === 0 ? "" : icSaldo > 0 ? "good" : "bad";
 
   // --- Diario ---
   const diarioTotalHoje = campo(dados, "diario.total_hoje");
@@ -159,6 +180,58 @@ export default async function HomePage() {
       )}
 
       <div className="section-title">
+        <h2>Intercompany ATOM × Showdesign</h2>
+        <span className="section-hint">extrato do Log Intercompany · atualizado todo dia às 22h</span>
+      </div>
+
+      <div className="hero-grid">
+        <div className="hero-card">
+          <div className="hero-top">
+            <span className="hero-label">ATOM deve à Showdesign</span>
+            <span className="hero-icon">
+              <IconTrend />
+            </span>
+          </div>
+          <span className="hero-value mono">{icAtomDeve === null ? "—" : formatBRL(icAtomDeve)}</span>
+          <span className="hero-sub">soma dos lançamentos positivos (+)</span>
+        </div>
+
+        <div className="hero-card">
+          <div className="hero-top">
+            <span className="hero-label">Showdesign deve à ATOM</span>
+            <span className="hero-icon">
+              <IconWallet />
+            </span>
+          </div>
+          <span className="hero-value mono">{icSdnDeve === null ? "—" : formatBRLSigned(icSdnDeve === 0 ? 0 : -Math.abs(icSdnDeve))}</span>
+          <span className="hero-sub">soma dos lançamentos negativos (−)</span>
+        </div>
+
+        <div className="hero-card accent">
+          <div className="hero-top">
+            <span className="hero-label">Saldo líquido</span>
+            <span className="hero-icon">
+              <IconStack />
+            </span>
+          </div>
+          <span className={`hero-value mono ${icSaldoClasse}`} style={icSaldoClasse ? { color: `var(--${icSaldoClasse})` } : undefined}>
+            {icSaldo === null ? "—" : formatBRLSigned(icSaldo)}
+          </span>
+          <span className="hero-sub">
+            {icSemDados
+              ? "Ainda sem execução da tarefa Intercompany com este painel."
+              : `Atualizado ${icAtualizadoEm || "—"}`}
+          </span>
+        </div>
+      </div>
+
+      <div className="callout" style={{ marginBottom: "28px" }}>
+        <strong>+</strong> a ATOM passa a dever à Showdesign (entrou na conta da ATOM dinheiro que é dela, ou a
+        Showdesign pagou algo da ATOM). <strong>−</strong> a Showdesign passa a dever à ATOM (a ATOM pagou algo dela,
+        ou entrou na conta da Showdesign dinheiro que é da ATOM).
+      </div>
+
+      <div className="section-title">
         <h2>Alertas</h2>
         <span className="section-hint">conciliação e saúde dos eventos</span>
       </div>
@@ -245,7 +318,7 @@ export default async function HomePage() {
             </div>
             <div className="mini-stat">
               <span className="n mono">{eventosCriticos.length}</span>
-              <span className="l">Crɴicos</span>
+              <span className="l">Críticos</span>
             </div>
             <div className="mini-stat">
               <span className="n mono">{eventosSemFaturamento.length}</span>
