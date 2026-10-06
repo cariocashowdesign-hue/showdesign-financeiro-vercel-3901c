@@ -326,4 +326,67 @@ export default async function HomePage() {
         </div>
 
         <div className="area-card">
-          <div
+          <div className="area-card-head">
+            <h3>
+              <span className="hero-icon">
+                <IconCalendar />
+              </span>
+              Eventos
+            </h3>
+            <a href="/eventos">ver detalhes →</a>
+          </div>
+          <div className="area-stats">
+            <div className="mini-stat">
+              <span className="n mono">{andamentoCount}</span>
+              <span className="l">Em andamento</span>
+            </div>
+            <div className="mini-stat">
+              <span className="n mono">{eventosCriticos.length}</span>
+              <span className="l">Críticos</span>
+            </div>
+            <div className="mini-stat">
+              <span className="n mono">{eventosSemFaturamento.length}</span>
+              <span className="l">Sem faturamento</span>
+            </div>
+          </div>
+          <span className="area-foot">Atualizado {eventosAtualizadoEm || "—"}</span>
+        </div>
+
+        <div className="area-card">
+          <div className="area-card-head">
+            <h3>
+              <span className="hero-icon">
+                <IconTrend />
+              </span>
+              Semanal
+            </h3>
+            <a href="/semanal">ver detalhes →</a>
+          </div>
+          {semSemana ? (
+            <div className="callout" style={{ margin: 0 }}>
+              Ainda sem dados semanais.
+            </div>
+          ) : (
+            <div className="area-stats">
+              <div className="mini-stat">
+                <span className="n mono">{formatBRL(entradas)}</span>
+                <span className="l">Entradas proj.</span>
+              </div>
+              <div className="mini-stat">
+                <span className="n mono">{formatBRL(saidas)}</span>
+                <span className="l">Saídas proj.</span>
+              </div>
+              <div className="mini-stat">
+                <span className="n mono">{formatBRL(resultado)}</span>
+                <span className="l">Resultado líq.</span>
+              </div>
+            </div>
+          )}
+          <span className="area-foot">
+            {semanaPeriodo ? `Período ${semanaPeriodo}` : "Atualizado"} {semanaAtualizadoEm || ""}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
